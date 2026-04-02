@@ -622,12 +622,19 @@
 
       try {
         const res = await fetch('https://news-ai-companion-1.onrender.com/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, query, sessionId: '1' })
-        });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ text, query, sessionId: '1' })
+});
 
-        const data = await res.json();
+console.log("Response status:", res.status);
+
+if (!res.ok) {
+  throw new Error("Server error: " + res.status);
+}
+
+const data = await res.json();
+console.log("Response data:", data);
 
         if (data.error) {
           addMessage(data.error, 'error');
