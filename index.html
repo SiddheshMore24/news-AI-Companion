@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>News AI Companion</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
+      height: 100vh;
+      display: flex;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .article-section {
+      flex: 0 0 35%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .upload-zone {
+      padding: 20px;
+      background: #1e293b;
+      border: 2px dashed #334155;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .upload-zone:hover {
+      border-color: #3b82f6;
+      background: #0f172a;
+    }
+
+    .upload-zone.dragover {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .upload-zone input[type="file"] {
+      display: none;
+    }
+
+    .upload-zone p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .upload-zone .upload-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .quick-btn {
+      padding: 8px 12px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .quick-btn:hover:not(:disabled) {
+      border-color: #3b82f6;
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .quick-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .chat-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #article {
+      flex: 1;
+      padding: 15px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.5;
+      resize: none;
+      transition: border-color 0.2s;
+    }
+
+    #article:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .status {
+      padding: 10px 15px;
+      background: #0f172a;
+      border-radius: 8px;
+      border-left: 3px solid #64748b;
+      font-size: 12px;
+      color: #94a3b8;
+      transition: all 0.3s;
+    }
+
+    .status.listening {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.05);
+      color: #fca5a5;
+    }
+
+    .status.thinking {
+      border-left-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.05);
+      color: #fcd34d;
+    }
+
+    .status.speaking {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.05);
+      color: #86efac;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 15px;
+      background: #0f172a;
+      border-radius: 10px;
+      border: 1px solid #334155;
+    }
+
+    #chat::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chat::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #chat::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+
+    #chat::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    .msg {
+      padding: 12px 16px;
+      border-radius: 12px;
+      max-width: 85%;
+      word-wrap: break-word;
+      line-height: 1.5;
+      font-size: 14px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: #3b82f6;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.ai {
+      align-self: flex-start;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-bottom-left-radius: 4px;
+      border: 1px solid #334155;
+    }
+
+    .msg.error {
+      align-self: flex-start;
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .msg.thinking {
+      align-self: flex-start;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      font-style: italic;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .input-group {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      min-width: 200px;
+    }
+
+    #query {
+      flex: 1;
+      padding: 12px 15px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-family: inherit;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    #query:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    button {
+      padding: 12px 20px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+      min-width: 50px;
+    }
+
+    button:hover:not(:disabled) {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #voiceBtn {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      padding: 0;
+      border-radius: 50%;
+    }
+
+    #voiceBtn.listening {
+      background: #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    .settings {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding-top: 10px;
+      border-top: 1px solid #334155;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slider-container label {
+      min-width: 60px;
+      margin: 0;
+    }
+
+    input[type="range"] {
+      width: 100px;
+      cursor: pointer;
+    }
+
+    .info {
+      font-size: 12px;
+      color: #64748b;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="article-section">
+      <label>📰 Article Text</label>
+      
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">📁</div>
+        <p>Drag & drop PDF/Image here or click to upload</p>
+        <p style="font-size: 11px; color: #64748b; margin-top: 5px;">Supports: PDF, JPG, PNG, GIF</p>
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.gif" />
+      </div>
+
+      <textarea id="article" placeholder="Paste news article here or upload PDF/Image..."></textarea>
+      
+      <div class="quick-actions" id="quickActions" style="display: none;">
+        <button class="quick-btn" onclick="quickSummarize()">📝 Summarize</button>
+      </div>
+
+      <div class="status" id="status">Ready</div>
+    </div>
+
+    <div class="chat-section">
+      <label>💬 Conversation</label>
+      <div id="chat"></div>
+
+      <div class="controls">
+        <div class="input-group">
+          <input id="query" type="text" placeholder="Ask a question..." />
+          <button onclick="send()" id="sendBtn">Send</button>
+        </div>
+        <button onclick="toggleVoice()" id="voiceBtn">🎤</button>
+      </div>
+
+      <div class="settings">
+        <div class="slider-container">
+          <label for="volumeSlider">Volume:</label>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="0.7" />
+        </div>
+        <div class="info">
+          💡 Tip: Click mic → speak naturally → system listens & responds
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
+  <script>
+    let recognition;
+    let speaking = false;
+    let listening = false;
+    let silenceTimer = null;
+    const SILENCE_DURATION = 1500; // 1.5 seconds of silence
+    let lastSoundTime = 0;
+
+    // Initialize PDF.js worker
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    function updateStatus(text, type = '') {
+      const status = document.getElementById('status');
+      status.textContent = text;
+      status.className = 'status ' + type;
+    }
+
+    function showQuickActions() {
+      const article = document.getElementById('article').value.trim();
+      const quickActions = document.getElementById('quickActions');
+      if (article.length > 50) {
+        quickActions.style.display = 'flex';
+      } else {
+        quickActions.style.display = 'none';
+      }
+    }
+
+    function quickSummarize() {
+      const article = document.getElementById('article').value.trim();
+      if (article.length < 50) {
+        addMessage('Please paste or upload a longer article first.', 'error');
+        return;
+      }
+      send('Summarize this article');
+    }
+
+    // File upload handlers
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    async function handleFiles(files) {
+      if (files.length === 0) return;
+
+      const file = files[0];
+      updateStatus('Processing file...', 'thinking');
+
+      try {
+        if (file.type === 'application/pdf') {
+          await extractPDFText(file);
+        } else if (file.type.startsWith('image/')) {
+          await extractImageText(file);
+        } else {
+          addMessage('Unsupported file type. Please upload PDF or image.', 'error');
+          updateStatus('Ready', '');
+        }
+      } catch (e) {
+        console.error('File processing error:', e);
+        addMessage('Error processing file: ' + e.message, 'error');
+        updateStatus('Ready', '');
+      }
+
+      // Reset file input
+      fileInput.value = '';
+    }
+
+    async function extractPDFText(file) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map(item => item.str)
+            .join(' ');
+          fullText += pageText + '\n';
+        }
+
+        fullText = fullText.trim();
+
+        if (fullText.length < 100) {
+          addMessage('PDF contains very little text. Please upload a PDF with an article.', 'error');
+          updateStatus('Ready', '');
+          return;
+        }
+
+        document.getElementById('article').value = fullText;
+        showQuickActions();
+        addMessage('✅ PDF extracted successfully! (' + Math.round(fullText.length / 100) + '00 characters)', 'ai');
+        updateStatus('Ready', '');
+      } catch (e) {
+        addMessage('Failed to extract PDF text. Is this a valid PDF?', 'error');
+        updateStatus('Ready', '');
+      }
+    }
+
+    async function extractImageText(file) {
+      try {
+        updateStatus('Running OCR on image...', 'thinking');
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const result = await Tesseract.recognize(e.target.result, 'eng');
+            const text = result.data.text.trim();
+
+            if (text.length < 100) {
+              addMessage('Image contains very little readable text. Please upload an image with an article.', 'error');
+              updateStatus('Ready', '');
+              return;
+            }
+
+            document.getElementById('article').value = text;
+            showQuickActions();
+            addMessage('✅ Text extracted from image! (' + Math.round(text.length / 100) + '00 characters)', 'ai');
+            updateStatus('Ready', '');
+          } catch (e) {
+            console.error('OCR error:', e);
+            addMessage('Failed to extract text from image.', 'error');
+            updateStatus('Ready', '');
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch (e) {
+        addMessage('Error processing image.', 'error');
+        updateStatus('Ready', '');
+      }
+    }
+
+    // Monitor article input for quick actions
+    document.getElementById('article').addEventListener('input', showQuickActions);
+    document.getElementById('article').addEventListener('paste', () => {
+      setTimeout(showQuickActions, 100);
+    });
+
+    function speak(text) {
+      if (!text) return;
+      
+      speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = document.getElementById('volumeSlider').value;
+
+      speaking = true;
+      updateStatus('Speaking...', 'speaking');
+
+      utterance.onend = () => {
+        speaking = false;
+        updateStatus('Ready', '');
+      };
+
+      utterance.onerror = () => {
+        speaking = false;
+        updateStatus('Ready', '');
+      };
+
+      speechSynthesis.speak(utterance);
+    }
+
+    async function send(q = null) {
+      const text = document.getElementById('article').value.trim();
+      const query = q || document.getElementById('query').value.trim();
+
+      if (!text) {
+        addMessage('Please paste an article first.', 'error');
+        return;
+      }
+
+      if (!query) {
+        addMessage('Please ask a question.', 'error');
+        return;
+      }
+
+      // Stop voice if speaking
+      if (speaking) {
+        speechSynthesis.cancel();
+        speaking = false;
+      }
+
+      // Stop listening
+      if (listening) {
+        recognition.stop();
+        listening = false;
+      }
+
+      // Clear input
+      const queryInput = document.getElementById('query');
+      queryInput.value = '';
+      queryInput.focus();
+
+      // Add user message
+      addMessage(query, 'user');
+      updateStatus('Thinking...', 'thinking');
+
+      try {
+        const res = await fetch('http://localhost:3000/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, query, sessionId: '1' })
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+          addMessage(data.error, 'error');
+          updateStatus('Ready', '');
+        } else {
+          addMessage(data.response, 'ai');
+          updateStatus('Ready', '');
+          speak(data.response);
+        }
+      } catch (e) {
+        console.error(e);
+        addMessage('Connection error. Please check the server.', 'error');
+        updateStatus('Ready', '');
+      }
+    }
+
+    function addMessage(msg, type) {
+      const chatDiv = document.getElementById('chat');
+      const d = document.createElement('div');
+      d.className = 'msg ' + type;
+      
+      // Preserve line breaks and format
+      d.textContent = msg;
+      chatDiv.appendChild(d);
+      
+      // Auto scroll to bottom
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    function initVoice() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('Speech Recognition not supported in your browser');
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      let transcript = '';
+
+      recognition.onstart = () => {
+        transcript = ''; // Reset for new question
+        listening = true;
+        document.getElementById('voiceBtn').classList.add('listening');
+        updateStatus('🎤 Listening... (speak naturally)', 'listening');
+      };
+
+      recognition.onresult = (event) => {
+        // If user is speaking, update last sound time
+        lastSoundTime = Date.now();
+        clearTimeout(silenceTimer);
+
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            transcript += t + ' ';
+          } else {
+            interim += t;
+          }
+        }
+
+        // Update input with current transcript
+        document.getElementById('query').value = (transcript + interim).trim();
+
+        // Detect silence - if no sound for 1.5 seconds, send
+        silenceTimer = setTimeout(() => {
+          if (listening && transcript.trim()) {
+            recognition.stop();
+          }
+        }, SILENCE_DURATION);
+      };
+
+      recognition.onend = () => {
+        listening = false;
+        document.getElementById('voiceBtn').classList.remove('listening');
+
+        const finalQuery = document.getElementById('query').value.trim();
+        if (finalQuery) {
+          // Small delay to ensure state is clear
+          setTimeout(() => send(finalQuery), 100);
+        } else {
+          updateStatus('Ready', '');
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Voice error:', event.error);
+        listening = false;
+        document.getElementById('voiceBtn').classList.remove('listening');
+        updateStatus('Mic error: ' + event.error, 'listening');
+      };
+    }
+
+    function toggleVoice() {
+      if (speaking) {
+        speechSynthesis.cancel();
+        speaking = false;
+      }
+
+      if (listening) {
+        recognition.stop();
+        listening = false;
+      } else {
+        if (!recognition) initVoice();
+        recognition.start();
+      }
+    }
+
+    // Initialize on page load
+    document.getElementById('query').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    });
+
+    updateStatus('Ready', '');
+    initVoice();
+  </script>
+</body>
+</html>
